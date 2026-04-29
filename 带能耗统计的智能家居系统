@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能家居仿真系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        .device {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .device-icon {
+            font-size: 1.5rem;
+        }
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #555;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle.active {
+            background: #00d4ff;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .toggle.active::after {
+            transform: translateX(25px);
+        }
+        .slider-container {
+            margin: 15px 0;
+        }
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+        }
+        .scene-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .scene-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .scene-btn:hover {
+            transform: scale(1.05);
+        }
+        .schedule-item {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        .schedule-item input, .schedule-item select {
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .add-schedule {
+            background: #00d4ff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #energyChart {
+            width: 100%;
+            height: 250px;
+        }
+        .status-text {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 智能家居仿真系统</h1>
+
+        <div class="dashboard">
+            <!-- 设备控制 -->
+            <div class="card">
+                <h2>设备控制</h2>
+                <div class="device">
+                    <div class="device-info">
+                        <span class="device-icon">💡</span>
+                        <span>客厅灯</span>
+                    </div>
+                    <div class="toggle" id="lightToggle" onclick="toggleDevice('light')"></div>
+                </div>
+                <div class="device">
+                    <div class="device-info">
+                        <span class="device-icon">❄️</span>
+                        <span>空调</span>
+                    </div>
+                    <div class="toggle" id="acToggle" onclick="toggleDevice('ac')"></div>
+                </div>
+                <div class="device">
+                    <div class="device-info">
+                        <span class="device-icon">🪟</span>
+                        <span>窗帘</span>
+                    </div>
+                    <div class="toggle" id="curtainToggle" onclick="toggleDevice('curtain')"></div>
+                </div>
+                <div class="slider-container">
+                    <label>空调温度: <span id="tempValue">24</span>°C</label>
+                    <input type="range" min="16" max="30" value="24" id="tempSlider" oninput="updateTemp(this.value)">
+                </div>
+            </div>
+
+            <!-- 场景控制 -->
+            <div class="card">
+                <h2>场景模式</h2>
+                <div class="scene-buttons">
+                    <button class="scene-btn" onclick="goHome()">🏠 回家模式</button>
+                    <button class="scene-btn" onclick="leaveHome()">🚪 离家模式</button>
+                </div>
+                <p class="status-text" id="sceneStatus">当前场景：待机</p >
+            </div>
+
+            <!-- 定时任务 -->
+            <div class="card">
+                <h2>定时任务</h2>
+                <div id="scheduleList">
+                    <div class="schedule-item">
+                        <input type="time" id="scheduleTime">
+                        <select id="scheduleDevice">
+                            <option value="light">客厅灯</option>
+                            <option value="ac">空调</option>
+                            <option value="curtain">窗帘</option>
+                        </select>
+                        <select id="scheduleAction">
+                            <option value="on">开启</option>
+                            <option value="off">关闭</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="add-schedule" onclick="addSchedule()">+ 添加定时任务</button>
+            </div>
+        </div>
+
+        <!-- 能耗统计 -->
+        <div class="card">
+            <h2>24小时能耗统计</h2>
+            <canvas id="energyChart"></canvas>
+            <p class="status-text">当前总能耗: <span id="totalEnergy">0</span> Wh</p >
+        </div>
+    </div>
+
+    <script>
+        // 设备状态
+        const devices = {
+            light: { status: false, power: 60 },
+            ac: { status: false, power: 1000 },
+            curtain: { status: false, power: 40 }
+        };
+        let temperature = 24;
+        let energyData = new Array(24).fill(0);
+        let totalEnergy = 0;
+
+        // 初始化图表
+        const ctx = document.getElementById('energyChart').getContext('2d');
+        const energyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                datasets: [{
+                    label: '能耗 (Wh)',
+                    data: energyData,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
+                },
+                scales: {
+                    y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                }
+            }
+        });
+
+        // 切换设备状态
+        function toggleDevice(device) {
+            devices[device].status = !devices[device].status;
+            const toggle = document.getElementById(`${device}Toggle`);
+            toggle.classList.toggle('active', devices[device].status);
+            updateEnergy();
+        }
+
+        // 更新温度
+        function updateTemp(value) {
+            temperature = value;
+            document.getElementById('tempValue').textContent = value;
+            // 空调功率随温度变化（简单模拟）
+            if (devices.ac.status) {
+                devices.ac.power = 800 + Math.abs(24 - value) * 50;
+                updateEnergy();
+            }
+        }
+
+        // 回家模式
+        function goHome() {
+            devices.light.status = true;
+            devices.ac.status = true;
+            devices.curtain.status = false;
+            updateUI();
+            document.getElementById('sceneStatus').textContent = '当前场景：回家模式';
+        }
+
+        // 离家模式
+        function leaveHome() {
+            devices.light.status = false;
+            devices.ac.status = false;
+            devices.curtain.status = true;
+            updateUI();
+            document.getElementById('sceneStatus').textContent = '当前场景：离家模式';
+        }
+
+        // 更新UI状态
+        function updateUI() {
+            document.getElementById('lightToggle').classList.toggle('active', devices.light.status);
+            document.getElementById('acToggle').classList.toggle('active', devices.ac.status);
+            document.getElementById('curtainToggle').classList.toggle('active', devices.curtain.status);
+            updateEnergy();
+        }
+
+        // 更新能耗统计
+        function updateEnergy() {
+            const now = new Date().getHours();
+            let currentPower = 0;
+            for (const dev in devices) {
+                if (devices[dev].status) {
+                    currentPower += devices[dev].power;
+                }
+            }
+            energyData[now] = currentPower;
+            totalEnergy = energyData.reduce((a, b) => a + b, 0);
+            document.getElementById('totalEnergy').textContent = totalEnergy;
+            energyChart.update();
+        }
+
+        // 添加定时任务
+        function addSchedule() {
+            const time = document.getElementById('scheduleTime').value;
+            const device = document.getElementById('scheduleDevice').value;
+            const action = document.getElementById('scheduleAction').value;
+            
+            if (!time) {
+                alert('请设置时间');
+                return;
+            }
+
+            const newItem = document.createElement('div');
+            newItem.className = 'schedule-item';
+            newItem.innerHTML = `
+                <span>${time}</span>
+                <span>${device === 'light' ? '客厅灯' : device === 'ac' ? '空调' : '窗帘'}</span>
+                <span>${action === 'on' ? '开启' : '关闭'}</span>
+                <button onclick="this.parentElement.remove()">删除</button>
+            `;
+            document.getElementById('scheduleList').appendChild(newItem);
+            alert('定时任务已添加！');
+        }
+
+        // 模拟能耗更新（每秒更新一次）
+        setInterval(updateEnergy, 1000);
+    </script>
+</body>
+</html>
